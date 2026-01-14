@@ -6,6 +6,11 @@
   directory = "netlify/functions"
 
 [[redirects]]
+  from = "/img/raw/*"
+  to = "/.netlify/functions/serve-image"
+  status = 200
+
+[[redirects]]
   from = "/img/*"
   to = "/.netlify/functions/serve-image"
   status = 200
