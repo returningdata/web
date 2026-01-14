@@ -17,6 +17,7 @@
         "@netlify/functions": "^5.1.2",
         "@tailwindcss/vite": "^4.1.16",
         "astro": "^5.15.0",
+        "bcryptjs": "^3.0.3",
         "blobshape": "^1.0.0",
         "marked": "^16.4.1",
         "marked-shiki": "^1.2.1",
@@ -26,6 +27,7 @@
         "unique-names-generator": "^4.7.1"
     },
     "devDependencies": {
+        "@types/bcryptjs": "^2.4.6",
         "@types/blobshape": "^1.0.3",
         "@types/node": "^20.12.7",
         "@types/react": "^19.2.2",
