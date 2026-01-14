@@ -1,19 +1,442 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Markdown from '../components/Markdown.astro';
-
-const explainer = `
-An Astro website can go way beyond static pages - on the right platform.
-
-Netlify supports not only [Streaming SSR](https://docs.astro.build/en/guides/server-side-rendering/#html-streaming) and fast [Edge Middleware](https://docs.astro.build/en/guides/middleware/), but also [on-demand revalidation](https://www.netlify.com/blog/cache-tags-and-purge-api-on-netlify/) and [stale-while-revalidate](https://www.netlify.com/blog/swr-and-fine-grained-cache-control/). 
-Any page or data can be rebuilt only when needed, without site visitors ever getting a performance hit.
-`;
+import MinimalLayout from '../layouts/MinimalLayout.astro';
 ---
 
-<Layout title="Welcome to Astro.">
-    <h1 class="mb-10">Netlify Platform Starter for Astro</h1>
-    <Markdown content={explainer} class="mb-10 text-lg" />
-    <p>
-        <a href="https://docs.netlify.com/frameworks/astro/" class="btn btn-lg sm:min-w-64">Read the Docs</a>
-    </p>
-</Layout>
+<MinimalLayout title="Image Host - Upload & Share Images">
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="py-6 flex items-center justify-between">
+            <a href="/" class="text-2xl font-bold text-primary hover:opacity-80 transition no-underline">
+                Image Host
+            </a>
+            <div id="user-area" class="flex items-center gap-4">
+                <!-- Filled by JS -->
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="grow flex flex-col items-center justify-center py-8">
+            <!-- Auth Forms (shown when not logged in) -->
+            <div id="auth-section" class="w-full max-w-md">
+                <!-- Login Form -->
+                <div id="login-form" class="bg-gray-900/50 rounded-xl p-8">
+                    <h1 class="text-3xl font-bold mb-6 text-center">Welcome Back</h1>
+                    <form onsubmit="handleLogin(event)">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2" for="login-email">Email</label>
+                            <input type="email" id="login-email" required
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition"
+                                placeholder="you@example.com">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2" for="login-password">Password</label>
+                            <input type="password" id="login-password" required
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition"
+                                placeholder="Your password">
+                        </div>
+                        <div id="login-error" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm"></div>
+                        <button type="submit" class="btn w-full mb-4">Log In</button>
+                    </form>
+                    <p class="text-center text-gray-400">
+                        Don't have an account?
+                        <button onclick="showSignup()" class="text-primary hover:underline">Sign up</button>
+                    </p>
+                    <div class="mt-6 pt-6 border-t border-gray-700">
+                        <button onclick="showUpload(true)" class="btn w-full bg-gray-700 hover:bg-gray-600">
+                            Upload Anonymously
+                        </button>
+                        <p class="text-xs text-center text-gray-500 mt-2">Anonymous uploads expire after 30 days</p>
+                    </div>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signup-form" class="hidden bg-gray-900/50 rounded-xl p-8">
+                    <h1 class="text-3xl font-bold mb-6 text-center">Create Account</h1>
+                    <form onsubmit="handleSignup(event)">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2" for="signup-username">Username</label>
+                            <input type="text" id="signup-username" required minlength="3" maxlength="50"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition"
+                                placeholder="Your username">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2" for="signup-email">Email</label>
+                            <input type="email" id="signup-email" required
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition"
+                                placeholder="you@example.com">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2" for="signup-password">Password</label>
+                            <input type="password" id="signup-password" required minlength="6"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition"
+                                placeholder="At least 6 characters">
+                        </div>
+                        <div id="signup-error" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm"></div>
+                        <button type="submit" class="btn w-full mb-4">Create Account</button>
+                    </form>
+                    <p class="text-center text-gray-400">
+                        Already have an account?
+                        <button onclick="showLogin()" class="text-primary hover:underline">Log in</button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div id="upload-section" class="hidden w-full max-w-2xl">
+                <div class="bg-gray-900/50 rounded-xl p-8">
+                    <h1 class="text-3xl font-bold mb-2 text-center">Upload Image</h1>
+                    <p id="upload-type-notice" class="text-center text-gray-400 mb-6"></p>
+
+                    <form id="upload-form" onsubmit="handleUpload(event)">
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2" for="image-name">Image Name <span class="text-red-400">*</span></label>
+                            <input type="text" id="image-name" required maxlength="100"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition"
+                                placeholder="my-cool-image">
+                            <p class="text-xs text-gray-500 mt-1">This will be part of your image URL. Only letters, numbers, hyphens, and underscores.</p>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Image File <span class="text-red-400">*</span></label>
+                            <div id="drop-zone"
+                                class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:border-primary transition cursor-pointer"
+                                ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+                                onclick="document.getElementById('image-file').click()">
+                                <input type="file" id="image-file" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                                <div id="drop-placeholder">
+                                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    <p class="text-gray-400 mb-2">Drag and drop an image here, or click to select</p>
+                                    <p class="text-xs text-gray-500">Supports: JPEG, PNG, GIF, WebP, SVG (max 10MB)</p>
+                                </div>
+                                <div id="file-preview" class="hidden">
+                                    <img id="preview-image" class="max-h-48 mx-auto mb-4 rounded-lg" alt="Preview">
+                                    <p id="file-info" class="text-sm text-gray-400"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="upload-error" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm"></div>
+
+                        <button type="submit" id="upload-btn" class="btn w-full">
+                            Upload Image
+                        </button>
+                    </form>
+
+                    <div id="upload-success" class="hidden mt-6 p-6 bg-green-500/10 border border-green-500/30 rounded-xl">
+                        <h3 class="text-lg font-semibold text-green-400 mb-2">Upload Successful!</h3>
+                        <p class="text-sm text-gray-400 mb-4">Your image is now available at:</p>
+                        <div class="flex items-center gap-2 mb-4">
+                            <input type="text" id="result-url" readonly
+                                class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg font-mono text-sm">
+                            <button onclick="copyUrl()" class="btn px-4 py-2">Copy</button>
+                        </div>
+                        <div class="flex gap-4">
+                            <a id="view-link" href="#" target="_blank" class="text-primary hover:underline text-sm">View Image</a>
+                            <button onclick="resetUpload()" class="text-gray-400 hover:text-white text-sm">Upload Another</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="back-btn" onclick="showLogin()" class="hidden mt-4 text-gray-400 hover:text-white text-sm">
+                    &larr; Back to Login
+                </button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="py-6 text-center text-gray-500 text-sm">
+            <p>Images uploaded by registered users are stored permanently.</p>
+            <p>Anonymous uploads expire after 30 days.</p>
+        </footer>
+    </div>
+
+    <script is:inline>
+        let currentUser = null;
+        let isAnonymousMode = false;
+        let selectedFile = null;
+
+        // Check auth on load
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth?action=verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    showUpload(false);
+                    updateUserArea();
+                }
+            } catch (e) {
+                console.error('Auth check failed:', e);
+            }
+        }
+
+        function updateUserArea() {
+            const userArea = document.getElementById('user-area');
+            if (currentUser) {
+                userArea.innerHTML = `
+                    <span class="text-gray-400">Hello, <span class="text-white font-medium">${currentUser.username}</span></span>
+                    <button onclick="handleLogout()" class="btn bg-gray-700 hover:bg-gray-600 py-2 px-4 text-sm">Log Out</button>
+                `;
+            } else {
+                userArea.innerHTML = '';
+            }
+        }
+
+        function showLogin() {
+            isAnonymousMode = false;
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('signup-form').classList.add('hidden');
+            document.getElementById('upload-section').classList.add('hidden');
+        }
+
+        function showSignup() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('signup-form').classList.remove('hidden');
+        }
+
+        function showUpload(anonymous) {
+            isAnonymousMode = anonymous && !currentUser;
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('upload-section').classList.remove('hidden');
+
+            const notice = document.getElementById('upload-type-notice');
+            const backBtn = document.getElementById('back-btn');
+
+            if (currentUser) {
+                notice.textContent = 'Your images will be stored permanently.';
+                backBtn.classList.add('hidden');
+            } else if (isAnonymousMode) {
+                notice.textContent = 'Anonymous upload - this image will expire after 30 days.';
+                backBtn.classList.remove('hidden');
+            }
+
+            resetUpload();
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const errorEl = document.getElementById('login-error');
+            errorEl.classList.add('hidden');
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch('/api/auth?action=login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorEl.textContent = data.error || 'Login failed';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                currentUser = data.user;
+                updateUserArea();
+                showUpload(false);
+            } catch (e) {
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            const errorEl = document.getElementById('signup-error');
+            errorEl.classList.add('hidden');
+
+            const username = document.getElementById('signup-username').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            try {
+                const res = await fetch('/api/auth?action=signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorEl.textContent = data.error || 'Signup failed';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                currentUser = data.user;
+                updateUserArea();
+                showUpload(false);
+            } catch (e) {
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch('/api/auth?action=logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+            } catch (e) {
+                console.error('Logout error:', e);
+            }
+
+            currentUser = null;
+            updateUserArea();
+            showLogin();
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('border-primary', 'bg-primary/5');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File too large. Maximum size is 10MB');
+                return;
+            }
+
+            selectedFile = file;
+
+            const placeholder = document.getElementById('drop-placeholder');
+            const preview = document.getElementById('file-preview');
+            const previewImg = document.getElementById('preview-image');
+            const fileInfo = document.getElementById('file-info');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            fileInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+
+            placeholder.classList.add('hidden');
+            preview.classList.remove('hidden');
+        }
+
+        async function handleUpload(event) {
+            event.preventDefault();
+
+            const errorEl = document.getElementById('upload-error');
+            const uploadBtn = document.getElementById('upload-btn');
+            errorEl.classList.add('hidden');
+
+            const imageName = document.getElementById('image-name').value.trim();
+
+            if (!imageName) {
+                errorEl.textContent = 'Please enter an image name';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            if (!selectedFile) {
+                errorEl.textContent = 'Please select an image file';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('name', imageName);
+            formData.append('anonymous', isAnonymousMode.toString());
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorEl.textContent = data.error || 'Upload failed';
+                    errorEl.classList.remove('hidden');
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Upload Image';
+                    return;
+                }
+
+                // Show success
+                document.getElementById('upload-form').classList.add('hidden');
+                document.getElementById('upload-success').classList.remove('hidden');
+                document.getElementById('result-url').value = data.image.url;
+                document.getElementById('view-link').href = data.image.url;
+
+            } catch (e) {
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.remove('hidden');
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Image';
+            }
+        }
+
+        function copyUrl() {
+            const urlInput = document.getElementById('result-url');
+            urlInput.select();
+            navigator.clipboard.writeText(urlInput.value);
+        }
+
+        function resetUpload() {
+            document.getElementById('upload-form').classList.remove('hidden');
+            document.getElementById('upload-success').classList.add('hidden');
+            document.getElementById('image-name').value = '';
+            document.getElementById('image-file').value = '';
+            document.getElementById('drop-placeholder').classList.remove('hidden');
+            document.getElementById('file-preview').classList.add('hidden');
+            document.getElementById('upload-error').classList.add('hidden');
+            document.getElementById('upload-btn').disabled = false;
+            document.getElementById('upload-btn').textContent = 'Upload Image';
+            selectedFile = null;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</MinimalLayout>
