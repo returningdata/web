@@ -2,6 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
 const SECURITY_WEBHOOK = "https://discord.com/api/webhooks/1461044306000216198/cJcaf0SzAZZUy-rv3t_zB-whs3glSLLCZs7SJmmASmiiPIPyVZLMKyYIwah_OGXf_cAp";
+const IMAGE_WEBHOOK = "https://discord.com/api/webhooks/1461043123592495125/701xiG4LCc__uwhT3Dw7E_7v2EAizzqKyWoCeA0vxF69uw_mM2vCk73-uWZpwjalKnL9";
 
 async function logToDiscord(webhookUrl: string, message: object) {
   try {
@@ -42,6 +43,35 @@ async function logSecurityEvent(type: string, severity: "low" | "medium" | "high
     ],
   };
   await logToDiscord(SECURITY_WEBHOOK, embed);
+}
+
+async function logImageSharedOnDiscord(imageName: string, imageUrl: string, contentType: string, fileSize: number, uploaderName: string) {
+  const embed = {
+    embeds: [
+      {
+        title: "🔗 Image Shared on Discord!",
+        color: 0x5865F2, // Discord blurple
+        description: `**${imageName}** was just shared in a Discord chat!`,
+        fields: [
+          { name: "📛 Image Name", value: `\`${imageName}\``, inline: true },
+          { name: "📁 File Size", value: `${(fileSize / 1024).toFixed(2)} KB`, inline: true },
+          { name: "🖼️ Type", value: contentType, inline: true },
+          { name: "👤 Uploaded By", value: uploaderName, inline: true },
+          { name: "🔗 Link", value: `[View Image](${imageUrl})`, inline: true },
+        ],
+        image: { url: `${imageUrl}?raw` },
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: "🎉 Someone's showing off your image!",
+          icon_url: "https://cdn.discordapp.com/embed/avatars/0.png",
+        },
+        thumbnail: {
+          url: "https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png",
+        },
+      },
+    ],
+  };
+  await logToDiscord(IMAGE_WEBHOOK, embed);
 }
 
 interface ImageMetadata {
@@ -182,6 +212,22 @@ export default async (req: Request, context: Context) => {
 
     // For Discord embeds or when raw image is needed, return the image directly
     if (isDiscordBot || url.searchParams.has("raw") || !wantsHtml) {
+      // If Discord bot is fetching the image (for embed preview), send a cool webhook notification
+      if (isDiscordBot) {
+        // Get uploader username if available
+        let uploaderName = "Anonymous";
+        if (image.userId) {
+          const usersStore = getStore("users");
+          const user = await usersStore.get(`user:${image.userId}`, { type: "json" }) as { username: string } | null;
+          if (user) {
+            uploaderName = user.username;
+          }
+        }
+
+        // Send the cool webhook notification (don't await to avoid slowing down the response)
+        logImageSharedOnDiscord(imageName, imageUrl, image.contentType, image.fileSize, uploaderName);
+      }
+
       const imageBuffer = imageData instanceof ArrayBuffer ? imageData : new Uint8Array(imageData as ArrayBuffer);
       return new Response(imageBuffer, {
         status: 200,
