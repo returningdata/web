@@ -93,7 +93,14 @@ export default async (req: Request, context: Context) => {
 
   // Extract the image name from the URL path
   const url = new URL(req.url);
-  const pathMatch = url.pathname.match(/^\/img\/(.+)$/);
+
+  // Check if this is a /img/raw/{imagename} request
+  const rawPathMatch = url.pathname.match(/^\/img\/raw\/(.+)$/);
+  const regularPathMatch = url.pathname.match(/^\/img\/(.+)$/);
+
+  // Determine if raw was requested via path
+  const isRawPath = rawPathMatch !== null;
+  const pathMatch = rawPathMatch || regularPathMatch;
 
   if (!pathMatch) {
     return new Response("Not found", { status: 404 });
@@ -207,11 +214,11 @@ export default async (req: Request, context: Context) => {
 
     // Check if request wants HTML page (browser viewing) or raw image
     const acceptHeader = req.headers.get("accept") || "";
-    const wantsHtml = acceptHeader.includes("text/html") && !url.searchParams.has("raw");
+    const wantsHtml = acceptHeader.includes("text/html") && !url.searchParams.has("raw") && !isRawPath;
     const isDiscordBot = (req.headers.get("user-agent") || "").toLowerCase().includes("discordbot");
 
-    // For Discord embeds or when raw image is needed, return the image directly
-    if (isDiscordBot || url.searchParams.has("raw") || !wantsHtml) {
+    // For Discord embeds, /img/raw/ path, ?raw param, or when raw image is needed, return the image directly
+    if (isDiscordBot || isRawPath || url.searchParams.has("raw") || !wantsHtml) {
       // If Discord bot is fetching the image (for embed preview), send a cool webhook notification
       if (isDiscordBot) {
         // Get uploader username if available
@@ -387,6 +394,12 @@ export default async (req: Request, context: Context) => {
       <input type="text" value="${imageUrl}" readonly id="urlInput">
       <button class="btn copy-btn" onclick="navigator.clipboard.writeText('${imageUrl}'); this.textContent='Copied!';">Copy URL</button>
     </div>
+
+    <div class="url-box">
+      <label>Raw Image URL (direct link to image file)</label>
+      <input type="text" value="https://tazeliteplays.netlify.app/img/raw/${imageName}" readonly id="rawUrlInput">
+      <button class="btn copy-btn" onclick="navigator.clipboard.writeText('https://tazeliteplays.netlify.app/img/raw/${imageName}'); this.textContent='Copied!';">Copy URL</button>
+    </div>
   </div>
 </body>
 </html>`,
@@ -405,5 +418,5 @@ export default async (req: Request, context: Context) => {
 };
 
 export const config: Config = {
-  path: "/img/*",
+  path: ["/img/*", "/img/raw/*"],
 };
