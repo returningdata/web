@@ -255,7 +255,7 @@ export default async (req: Request, context: Context) => {
       await expirationStore.set(`expire:${expiresAt.getTime()}:${sanitizedName}`, sanitizedName);
     }
 
-    const imageUrl = `https://tazeliteplays.netlify.app/img/${sanitizedName}`;
+    const imageUrl = `https://tazimagehost.netlify.app/img/${sanitizedName}`;
     const rawImageUrl = `${imageUrl}?raw`;
 
     // Log to Discord image webhook

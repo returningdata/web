@@ -210,7 +210,7 @@ export default async (req: Request, context: Context) => {
       return new Response("Image data not found", { status: 404 });
     }
 
-    const imageUrl = `https://tazeliteplays.netlify.app/img/${imageName}`;
+    const imageUrl = `https://tazimagehost.netlify.app/img/${imageName}`;
 
     // Check if request wants HTML page (browser viewing) or raw image
     const acceptHeader = req.headers.get("accept") || "";
@@ -262,7 +262,7 @@ export default async (req: Request, context: Context) => {
   <meta property="og:image" content="${imageUrl}?raw">
   <meta property="og:image:type" content="${image.contentType}">
   <meta property="og:url" content="${imageUrl}">
-  <meta property="og:site_name" content="TazelitePlays Image Host">
+  <meta property="og:site_name" content="TazImageHost">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="${imageUrl}?raw">
   <meta name="twitter:title" content="${imageName}">
@@ -397,8 +397,8 @@ export default async (req: Request, context: Context) => {
 
     <div class="url-box">
       <label>Raw Image URL (direct link to image file)</label>
-      <input type="text" value="https://tazeliteplays.netlify.app/img/raw/${imageName}" readonly id="rawUrlInput">
-      <button class="btn copy-btn" onclick="navigator.clipboard.writeText('https://tazeliteplays.netlify.app/img/raw/${imageName}'); this.textContent='Copied!';">Copy URL</button>
+      <input type="text" value="https://tazimagehost.netlify.app/img/raw/${imageName}" readonly id="rawUrlInput">
+      <button class="btn copy-btn" onclick="navigator.clipboard.writeText('https://tazimagehost.netlify.app/img/raw/${imageName}'); this.textContent='Copied!';">Copy URL</button>
     </div>
   </div>
 </body>
